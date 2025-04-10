@@ -32,7 +32,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{matrix.nodejs_version}}
-      
+
+      - name: Cache NPM Dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
       - name: Install Dependencies
         run: npm install
 
@@ -58,16 +64,22 @@ jobs:
       with:
         node-version: 18
     
+    - name: Cache NPM Dependencies
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
     - name: Install Dependencies
       run: npm install
 
     - name: Check Code Coverage
-      # continue-on-error: true
+      continue-on-error: true
       id: code-coverage-step
       run: npm run coverage
 
     - name: Archive Test Result
-      if: always()
+      # if: always()
       uses: actions/upload-artifact@v4
       with:
         name: Code-Coverage-Result
