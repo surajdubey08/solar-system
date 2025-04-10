@@ -91,7 +91,7 @@ jobs:
     needs: [unit-testing, code-coverage]
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      # id-token: write
       packages: read
     steps:
       - name: Checkout Repository
