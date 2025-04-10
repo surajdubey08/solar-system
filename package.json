@@ -1,8 +1,12 @@
 {
-  "name": "Solar System",
+  "name": "@surajdubey08/solar-system",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/surajdubey08/solar-system.git"
+  },
   "version": "6.7.6",
-  "author": "Siddharth Barahalikar <barahalikar.siddharth@gmail.com>",
-  "homepage": "https://www.linkedin.com/in/barahalikar-siddharth/",
+  "author": "Suraj Dhar Dubey <surajdhar08.dubey@gmail.com>",
+  "homepage": "https://www.linkedin.com/in/surajdubey0801",
   "license": "MIT",
   "scripts": {
     "start": "node app.js",
