@@ -107,7 +107,7 @@ jobs:
       - name: Image Build
         uses: docker/build-push-action@v6
         with:
-          context: ./Dockerfile
+          context: .
           push: false
           tags: ${{ github.actor }}/solar-system:${{github.run_id}}
 
@@ -130,6 +130,6 @@ jobs:
       - name: Image Push to GHCR
         uses: docker/build-push-action@v6
         with:
-          context: ./Dockerfile
+          context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.actor }}/solar-system:${{github.run_id}}
