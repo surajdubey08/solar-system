@@ -4,12 +4,12 @@ metadata:
   labels:
     app: solar-system
   name: solar-system
-  namespace: ${NAMESPACE}
+  namespace: __NAMESPACE__
 spec:
   ports:
   - port: 3000
     protocol: TCP
     targetPort: 3000
   selector:
-    app: solar-system 
-  type: NodePort
+    app: solar-system
+  type: ClusterIP
