@@ -15,7 +15,7 @@ jobs:
       uses: azure/k8s-set-context@v4
       with:
         method: kubeconfig
-        kubeconfig: ${{secrets.KUBECONFIG_SURAJK8SCLUSTER}}
+        kubeconfig: ${{secrets.KUBECONFIG_K8SCLUSTER_SURAJ}}
 
     - name: Fetch K8s Cluster Details
       run: |
