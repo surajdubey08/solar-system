@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: solar-system-certificate
+  namespace: __NAMESPACE__
+spec:
+  secretName: solar-system-tls
+  issuerRef:
+    name: letsencrypt-staging
+    kind: Issuer
+  dnsNames:
+  - "solar-system-__NAMESPACE__.__INGRESS_IP__.nip.io"  # Update this with your actual DNS name

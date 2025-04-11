@@ -2,10 +2,10 @@ name: Solar System Workflow
 
 on:
   workflow_dispatch: 
-  push:
-    branches:
-      - main
-      - 'feature/*'
+  # push:
+  #   branches:
+  #     - main
+  #     - 'feature/*'
 
 env:
   REGISTRY: ghcr.io
@@ -196,11 +196,11 @@ jobs:
 
     - name: Check Manifest Files
       run: |
-        cat kubernetes/development/deployment.yaml
-        echo ---
-        cat kubernetes/development/service.yaml
-        echo ---
-        cat kubernetes/development/ingress.yaml
+        for file in kubernetes/development/*.yaml; do
+          echo "--- $file ---"
+          cat "$file"
+          echo ""
+        done
 
     - name: Create MongoDB Secret
       run: |

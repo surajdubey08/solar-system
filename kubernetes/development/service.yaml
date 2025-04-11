@@ -11,5 +11,5 @@ spec:
     protocol: TCP
     targetPort: 3000
   selector:
-    app: solar-system 
-  type: NodePort
+    app: solar-system
+  type: ClusterIP

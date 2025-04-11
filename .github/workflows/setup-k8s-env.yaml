@@ -1,0 +1,49 @@
+name: Setup Kubernetes Environment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  k8s-setup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set Kubeconfig
+      uses: azure/k8s-set-context@v4
+      with:
+        method: kubeconfig
+        kubeconfig: ${{secrets.KUBECONFIG_SURAJK8SCLUSTER}}
+
+    - name: Fetch K8s Cluster Details
+      run: |
+        kubectl version
+        echo --------------------------------------------
+        kubectl get nodes
+
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: latest
+
+    - name: Install Ingress Controller
+      run: |
+        kubectl create namespace ingress-nginx --dry-run=client -o yaml | kubectl apply -f -
+        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+        helm repo update
+        helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.publishService.enabled=true
+
+    - name: Install Cert-Manager
+      run: |
+        kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
+        kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.17.1/cert-manager.crds.yaml
+        helm repo add jetstack https://charts.jetstack.io
+        helm repo update
+        helm install cert-manager jetstack/cert-manager --namespace cert-manager --version v1.17.1
+
+    - name: Verify Installations
+      run: |
+        kubectl get pods -n ingress-nginx
+        kubectl get pods -n cert-manager
