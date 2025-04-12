@@ -150,6 +150,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ github.actor }}/solar-system:${{github.run_id}}
 
   dev-deploy:
+    if: contains(github.ref, 'feature/')
     needs: image-build-and-push
     runs-on: ubuntu-latest
     environment: 
@@ -225,6 +226,7 @@ jobs:
         echo "APP_INGRESS_HOST=$(kubectl get ingress -n ${{vars.NAMESPACE}} -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> $GITHUB_OUTPUT
 
   dev-integration-testing:
+    if: contains(github.ref, 'feature/')
     name: Dev Implementation Testing
     needs: dev-deploy
     runs-on: ubuntu-latest
@@ -239,7 +241,8 @@ jobs:
         curl -s -k https://$INGRESS_HOST/live | jq -r .status | grep -i live
 
   prod-deploy:
-    needs: dev-integration-testing
+    if: github.ref == 'refs/heads/main'
+    needs: image-build-and-push
     runs-on: ubuntu-latest
     environment: 
       name: PRODUCTION
@@ -314,6 +317,7 @@ jobs:
         echo "APP_INGRESS_HOST=$(kubectl get ingress -n ${{vars.NAMESPACE}} -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> $GITHUB_OUTPUT
 
   prod-integration-testing:
+    if: github.ref == 'refs/heads/main'
     name: Prod Implementation Testing
     needs: prod-deploy
     runs-on: ubuntu-latest
