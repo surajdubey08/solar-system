@@ -8,8 +8,7 @@ on:
       - 'feature/*'
 
 env:
-  REGISTRY: ghcr.io
-  MONGO_URI: 'mongodb+srv://supercluster.d83jj.mongodb.net/superData'
+  MONGO_URI: ${{vars.MONGO_URI}}
   MONGO_USERNAME: ${{vars.MONGO_USERNAME}}
   MONGO_PASSWORD: ${{secrets.MONGO_PASSWORD}}
 
@@ -115,7 +114,7 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -147,7 +146,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.actor }}/solar-system:${{github.run_id}}
+          tags: ghcr.io/${{ github.actor }}/solar-system:${{github.run_id}}
 
   dev-deploy:
     if: contains(github.ref, 'feature/')
@@ -156,6 +155,10 @@ jobs:
     secrets: 
       k8s-kubeconfig: ${{secrets.KUBECONFIG_K8SCLUSTER_SURAJ}}
       mongodb-password: ${{secrets.MONGO_PASSWORD}}
+    with:
+      mongodb-uri: ${{vars.MONGO_URI}}
+      environment: DEVELOPMENT
+      k8s-manifest-dir: kubernetes/development
 
   dev-integration-testing:
     if: contains(github.ref, 'feature/')
@@ -166,7 +169,7 @@ jobs:
    
     - name: Test URL Output using curl and jq
       env:
-        INGRESS_HOST: ${{needs.dev-deploy.outputs.APP_INGRESS_URL}}
+        INGRESS_HOST: ${{needs.dev-deploy.outputs.app-ingress-url}}
       run: |
         echo $INGRESS_HOST
         echo "-----------------------------------"
@@ -179,6 +182,10 @@ jobs:
     secrets: 
       k8s-kubeconfig: ${{secrets.KUBECONFIG_K8SCLUSTER_SURAJ}}
       mongodb-password: ${{secrets.MONGO_PASSWORD}}
+    with:
+      mongodb-uri: ${{vars.MONGO_URI}}
+      environment: PRODUCTION
+      k8s-manifest-dir: kubernetes/production
 
   prod-integration-testing:
     if: github.ref == 'refs/heads/main'
@@ -189,7 +196,7 @@ jobs:
     
     - name: Test URL Output using curl and jq
       env:
-        INGRESS_HOST: ${{needs.prod-deploy.outputs.APP_INGRESS_URL}}
+        INGRESS_HOST: ${{needs.prod-deploy.outputs.app-ingress-url}}
       run: |
         echo $INGRESS_HOST
         echo "-----------------------------------"
