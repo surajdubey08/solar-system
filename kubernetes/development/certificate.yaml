@@ -1,12 +1,14 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: solar-system-certificate
+  name: solar-system-dev-cert
   namespace: __NAMESPACE__
 spec:
   secretName: solar-system-tls
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
   issuerRef:
     name: letsencrypt-staging
     kind: Issuer
   dnsNames:
-  - "solar-system-__NAMESPACE__.__INGRESS_IP__.nip.io"  # Update this with your actual DNS name
+  - "solar-system-__NAMESPACE__.__INGRESS_IP__.nip.io"

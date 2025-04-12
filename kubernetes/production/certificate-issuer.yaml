@@ -1,14 +1,14 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: letsencrypt-staging
+  name: letsencrypt-production
   namespace: __NAMESPACE__
 spec:
   acme:
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    server: https://acme-v02.api.letsencrypt.org/directory
     email: rahulkumar.singh0801@gmail.com
     privateKeySecretRef:
-      name: letsencrypt-staging-account-key
+      name: letsencrypt-production-account-key
     solvers:
     - http01:
         ingress:

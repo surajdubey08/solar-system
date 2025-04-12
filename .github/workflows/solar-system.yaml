@@ -79,12 +79,7 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
-    
-    # - name: Setup Node JS Version - 18
-    #   uses: actions/setup-node@v3
-    #   with:
-    #     node-version: 18
-    
+       
     - name: Cache NPM Dependencies
       uses: actions/cache@v4
       with:
@@ -169,7 +164,7 @@ jobs:
     - name: Install kubectl
       uses: azure/setup-kubectl@v4
       with:
-        version: latest # default is latest stable
+        version: latest
 
     - name: Set Kubeconfig
       uses: azure/k8s-set-context@v4
@@ -229,7 +224,7 @@ jobs:
       run: |
         echo "APP_INGRESS_HOST=$(kubectl get ingress -n ${{vars.NAMESPACE}} -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> $GITHUB_OUTPUT
 
-  integration-testing:
+  dev-integration-testing:
     name: Dev Implementation Testing
     needs: dev-deploy
     runs-on: ubuntu-latest
@@ -238,6 +233,95 @@ jobs:
     - name: Test URL Output using curl and jq
       env:
         INGRESS_HOST: ${{needs.dev-deploy.outputs.APP_INGRESS_URL}}
+      run: |
+        echo $INGRESS_HOST
+        echo "-----------------------------------"
+        curl -s -k https://$INGRESS_HOST/live | jq -r .status | grep -i live
+
+  prod-deploy:
+    needs: dev-integration-testing
+    runs-on: ubuntu-latest
+    environment: 
+      name: PRODUCTION
+      url: https://${{steps.set-ingress-host-address.outputs.APP_INGRESS_HOST}}
+    outputs:
+      APP_INGRESS_URL: ${{steps.set-ingress-host-address.outputs.APP_INGRESS_HOST}}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v4
+      with:
+        version: latest
+
+    - name: Set Kubeconfig
+      uses: azure/k8s-set-context@v4
+      with:
+        method: kubeconfig
+        kubeconfig: ${{secrets.KUBECONFIG_K8SCLUSTER_SURAJ}}
+
+    - name: Fetch K8s Cluster Details
+      run: |
+        kubectl version
+        echo --------------------------------------------
+        kubectl get nodes
+
+    - name: Save NGINX Ingress Controller IP
+      run: |
+          echo "INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}")" >> $GITHUB_ENV
+
+    - name: Replace Placeholders in Manifest Files
+      uses: cschleiden/replace-tokens@v1
+      with:
+        tokenPrefix: '__'
+        tokenSuffix: '__'
+        files: '["kubernetes/production/*.yaml"]'
+      env:
+        NAMESPACE: ${{vars.NAMESPACE}}
+        REPLICAS: ${{vars.REPLICAS}}
+        IMAGE: ${{ env.REGISTRY }}/${{ github.actor }}/solar-system:${{github.run_id}}
+        INGRESS_IP: ${{env.INGRESS_IP}}
+
+    - name: Check Manifest Files
+      run: |
+        for file in kubernetes/production/*.yaml; do
+          echo "--- $file ---"
+          cat "$file"
+          echo ""
+        done
+
+    - name: Create Production Namespace
+      run: kubectl create namespace ${{vars.NAMESPACE}} --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Create MongoDB Secret
+      run: |
+        kubectl -n ${{vars.NAMESPACE}} create secret generic mongo-db-creds \
+        --from-literal=MONGO_URI=${{env.MONGO_URI}} \
+        --from-literal=MONGO_USERNAME=${{vars.MONGO_USERNAME}} \
+        --from-literal=MONGO_PASSWORD=${{secrets.MONGO_PASSWORD}} \
+        --save-config \
+        --dry-run=client \
+        -o yaml | kubectl apply -f -
+
+    - name: Deploy to PROD Env
+      run: |
+        kubectl apply -f kubernetes/production
+
+    - name: Set Application Ingress Host URL
+      id: set-ingress-host-address
+      run: |
+        echo "APP_INGRESS_HOST=$(kubectl get ingress -n ${{vars.NAMESPACE}} -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> $GITHUB_OUTPUT
+
+  prod-integration-testing:
+    name: Prod Implementation Testing
+    needs: prod-deploy
+    runs-on: ubuntu-latest
+    steps:
+    
+    - name: Test URL Output using curl and jq
+      env:
+        INGRESS_HOST: ${{needs.prod-deploy.outputs.APP_INGRESS_URL}}
       run: |
         echo $INGRESS_HOST
         echo "-----------------------------------"
