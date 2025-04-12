@@ -1,0 +1,105 @@
+name: Deploy Application to Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      mongodb-uri:
+        required: true
+        type: string
+      kubectl-version:
+        required: false
+        default: latest
+        type: string
+      k8s-manifest-dir:
+        required: true
+        default: kubernetes/
+        type: string
+      environment:
+        required: true
+        default: development
+        type: string
+      
+    secrets:
+      k8s-kubeconfig:
+        required: true
+      mongodb-password:
+        required: true   
+
+    outputs:
+      app-ingress-url:
+        value: ${{jobs.k8s-deploy.outputs.APP_INGRESS_URL}}
+
+jobs:
+  k8s-deploy:
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{inputs.environment}}
+      url: https://${{steps.set-ingress-host-address.outputs.APP_INGRESS_HOST}}
+    outputs:
+      APP_INGRESS_URL: ${{steps.set-ingress-host-address.outputs.APP_INGRESS_HOST}}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v4
+      with:
+        version: ${{inputs.kubectl-version}}
+
+    - name: Set Kubeconfig
+      uses: azure/k8s-set-context@v4
+      with:
+        method: kubeconfig
+        kubeconfig: ${{secrets.k8s-kubeconfig}}
+
+    - name: Fetch k8s Cluster Details
+      run: |
+        kubectl version
+        echo --------------------------------------------
+        kubectl get nodes
+
+    - name: Save NGINX Ingress Controller IP
+      run: |
+          echo "INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}")" >> $GITHUB_ENV
+
+    - name: Replace Placeholders in Manifest Files
+      uses: cschleiden/replace-tokens@v1
+      with:
+        tokenPrefix: '__'
+        tokenSuffix: '__'
+        files: '["${{inputs.k8s-manifest-dir}}/*.yaml"]'
+      env:
+        NAMESPACE: ${{vars.NAMESPACE}}
+        REPLICAS: ${{vars.REPLICAS}}
+        IMAGE: ghcr.io/${{ github.actor }}/solar-system:${{github.run_id}}
+        INGRESS_IP: ${{env.INGRESS_IP}}
+
+    - name: Check Manifest Files
+      run: |
+        for file in ${{inputs.k8s-manifest-dir}}/*.yaml; do
+          echo "--- $file ---"
+          cat "$file"
+          echo ""
+        done
+
+    - name: Create Envrionment Namespace
+      run: kubectl create namespace ${{vars.NAMESPACE}} --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Create MongoDB Secret
+      run: |
+        kubectl -n ${{vars.NAMESPACE}} create secret generic mongo-db-creds \
+        --from-literal=MONGO_URI=${{inputs.mongodb-uri}} \
+        --from-literal=MONGO_USERNAME=${{vars.MONGO_USERNAME}} \
+        --from-literal=MONGO_PASSWORD=${{secrets.mongodb-password}} \
+        --save-config \
+        --dry-run=client \
+        -o yaml | kubectl apply -f -
+
+    - name: Deploy to k8s Env
+      run: |
+        kubectl apply -f ${{inputs.k8s-manifest-dir}}
+
+    - name: Set Application Ingress Host URL
+      id: set-ingress-host-address
+      run: |
+        echo "APP_INGRESS_HOST=$(kubectl get ingress -n ${{vars.NAMESPACE}} -o jsonpath="{.items[0].spec.tls[0].hosts[0]}")" >> $GITHUB_OUTPUT
