@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: solar-system-prod-cert
+  namespace: __NAMESPACE__
+spec:
+  secretName: solar-system-tls
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  issuerRef:
+    name: letsencrypt-production
+    kind: Issuer
+  dnsNames:
+  - "solar-system-__NAMESPACE__.__INGRESS_IP__.nip.io"
