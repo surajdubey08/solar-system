@@ -176,6 +176,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: image-build-and-push
     uses: ./.github/workflows/k8s-deploy.yaml
+    secrets: 
+      k8s-kubeconfig: ${{secrets.KUBECONFIG_K8SCLUSTER_SURAJ}}
+      mongodb-password: ${{secrets.MONGO_PASSWORD}}
 
   prod-integration-testing:
     if: github.ref == 'refs/heads/main'
