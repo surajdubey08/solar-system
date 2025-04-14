@@ -1,0 +1,26 @@
+name: Test the Custom Actions
+
+on:
+  pull_request: 
+    types: 
+    - opened
+
+jobs:
+  test-custom-actions:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:   
+    - name: Post PR comment using Docker Custom Action
+      uses: surajdubey08/docker-gh-custom-action-giphy-comment@main
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        giphy-api-key: ${{secrets.GIPHY_API_KEY}}
+    
+    - name: Post PR comment using JavaScript Custom Action
+      uses: surajdubey08/js-gh-custom-action-giphy-comment@1.0.0-alpha
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        giphy-api-key: ${{secrets.GIPHY_API_KEY}}
