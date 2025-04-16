@@ -2,7 +2,22 @@ name: Setup Kubernetes Environment
 
 on:
   workflow_dispatch:
-
+    inputs:
+      install_ingress:
+        description: 'Install Ingress'
+        required: false
+        default: false
+        type: boolean
+      install_cert_manager:
+        description: 'Install Cert-Manager'
+        required: false
+        default: false
+        type: boolean
+      install_keda:
+        description: 'Install KEDA'
+        required: false
+        default: false
+        type: boolean
 jobs:
   k8s-setup:
     runs-on: ubuntu-latest
@@ -29,6 +44,7 @@ jobs:
         version: latest
 
     - name: Install Ingress Controller
+      if: ${{ inputs.install_ingress == true }}
       run: |
         kubectl create namespace ingress-nginx --dry-run=client -o yaml | kubectl apply -f -
         helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -39,6 +55,7 @@ jobs:
         kubectl annotate service ingress-nginx-controller -n ingress-nginx "service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path=/healthz" --overwrite
         
     - name: Install Cert-Manager
+      if: ${{ inputs.install_cert_manager == true }}
       run: |
         kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
         kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.17.1/cert-manager.crds.yaml
